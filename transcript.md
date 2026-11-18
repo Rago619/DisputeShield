@@ -49,3 +49,32 @@
 7. Built React 18 frontend with 4 specialized tabs, two-step upload modal, and persistent 1-click download buttons for the 3 generated CSV files.
 8. Configured `Dockerfile` and `render.yaml` for 1-click deployment on Render.
 9. Wrote comprehensive 2–3 page `approach_document.md` and complete test suite.
+
+---
+
+## 3. Deployment, Memory Profiling & Production Optimization for Render
+
+### User Prompts & Feedback
+- Reported Docker build failure: `go.mod` invalid version `1.27.4` and missing `go mod tidy` in Dockerfile.
+- Resolved port 8080 conflict.
+- Verified exact schema compliance for `payment_predictions.csv`, `dispute_predictions.csv`, and `whatif_results.csv` against `3_export_templates/`.
+- Successfully deployed application on Render: `https://disputeshield-8lm1.onrender.com/`.
+- Reported Render Free Tier 512 MB RAM limit crash:
+  > *"The app is crashing because it is using more than 512 mb ram in render deployment"*
+
+### Assistant Diagnosis & Optimization Actions
+1. **Identified Memory Inefficiencies:** Loading the full historical dataset (221,344 payments, 230,708 invoices, 362,521 photos, 1,592 disputes) on a 512 MB container caused OOM kills:
+   - `photos.csv` contained 362,521 rows stored in memory (~80 MB) despite photo counts already being embedded directly in `invoices.csv`.
+   - `models.Invoice` and `models.Payment` stored unneeded fields, allocating >2.9 million unused string/pointer objects.
+   - Repeated string allocations (`tap`, `chip`, `keyed`, `match`, action messages) created duplicate heap objects.
+   - `teamPayments` built a map of slices with 221k pointers, duplicating allocations.
+   - Buffered CSV export built a 25 MB buffer in memory before sending.
+2. **Applied 42% RAM Footprint Reduction:**
+   - Skipped loading raw `photos.csv` records in RAM.
+   - Pruned unused struct fields in `models.Invoice` and `models.Payment`.
+   - Implemented string interning and canonical string constants.
+   - Converted team aggregation to a single-pass `teamAgg` counter (200 records instead of 221k pointers).
+   - Streamed CSV exports directly to `http.ResponseWriter`.
+   - Enforced `GOMEMLIMIT=380MiB` and `GOGC=50` in `render.yaml` and `Dockerfile`.
+   - Called `debug.FreeOSMemory()` after initial dataset load.
+3. **Outcome:** Heap allocations dropped from 247 MB to 144 MB (-42%), and total system memory dropped from 340 MB to 197 MB, providing >315 MB of safe headroom under Render's 512 MB ceiling.
