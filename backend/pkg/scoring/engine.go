@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	"disputeshield/pkg/models"
 )
@@ -140,10 +141,12 @@ func (e *Engine) ScorePayment(inv *models.Invoice, pmt *models.Payment) models.P
 		zPmt += wPmt["is_card_present"]
 	} else if pmt.PaymentMethod == "keyed" {
 		zPmt += wPmt["is_keyed"]
-		if pmt.AVSResult == "M" || pmt.AVSResult == "A" || pmt.AVSResult == "Z" {
+		avs := strings.ToLower(pmt.AVSResult)
+		if avs == "match" || avs == "partial" || avs == "m" || avs == "a" || avs == "z" {
 			zPmt += wPmt["avs_match"]
 		}
-		if pmt.CVVResult == "M" {
+		cvv := strings.ToLower(pmt.CVVResult)
+		if cvv == "match" || cvv == "m" {
 			zPmt += wPmt["cvv_match"]
 		}
 	}
@@ -202,10 +205,12 @@ func (e *Engine) ScorePayment(inv *models.Invoice, pmt *models.Payment) models.P
 	hRisk := 0.012
 	if pmt.PaymentMethod == "keyed" {
 		hRisk *= 3.0
-		if pmt.AVSResult != "M" && pmt.AVSResult != "A" && pmt.AVSResult != "Z" {
+		avs := strings.ToLower(pmt.AVSResult)
+		if avs != "match" && avs != "partial" && avs != "m" && avs != "a" && avs != "z" {
 			hRisk *= 2.0
 		}
-		if pmt.CVVResult != "M" {
+		cvv := strings.ToLower(pmt.CVVResult)
+		if cvv != "match" && cvv != "m" {
 			hRisk *= 1.8
 		}
 	}
@@ -285,23 +290,24 @@ func (e *Engine) ScoreDispute(inv *models.Invoice, pmt *models.Payment, disp *mo
 	hasEst := false
 
 	if disp.EvidenceSubmitted != "" {
-		for _, item := range []string{"completion_signature", "tech_gps_checkin", "photos_after", "signed_estimate"} {
-			if containsSubstring(disp.EvidenceSubmitted, item) {
-				switch item {
-				case "completion_signature":
-					hasSig = true
-					zDisp += wDisp["has_signature"]
-				case "tech_gps_checkin":
-					hasGPS = true
-					zDisp += wDisp["has_gps"]
-				case "photos_after":
-					hasPhoto = true
-					zDisp += wDisp["has_photo"]
-				case "signed_estimate":
-					hasEst = true
-					zDisp += wDisp["has_estimate"]
-				}
-			}
+		hasSig = containsSubstring(disp.EvidenceSubmitted, "completion_signature")
+		if hasSig {
+			zDisp += wDisp["has_signature"]
+		}
+
+		hasGPS = containsSubstring(disp.EvidenceSubmitted, "gps_checkin") || containsSubstring(disp.EvidenceSubmitted, "tech_gps_checkin")
+		if hasGPS {
+			zDisp += wDisp["has_gps"]
+		}
+
+		hasPhoto = containsSubstring(disp.EvidenceSubmitted, "job_photos") || containsSubstring(disp.EvidenceSubmitted, "photos_after") || containsSubstring(disp.EvidenceSubmitted, "photos_added_after_dispute")
+		if hasPhoto {
+			zDisp += wDisp["has_photo"]
+		}
+
+		hasEst = containsSubstring(disp.EvidenceSubmitted, "signed_estimate")
+		if hasEst {
+			zDisp += wDisp["has_estimate"]
 		}
 	}
 

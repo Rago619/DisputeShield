@@ -25,7 +25,7 @@ DisputeShield was designed to resolve this information asymmetry across three co
 
 ## 2. Exploratory Data Findings (Months 1–22)
 
-An analysis of 4,984 invoices, 4,984 payments, and 164 disputes across 200 teams revealed three critical structural patterns:
+An analysis of 230,708 invoices, 221,344 payments ($169.9M volume), and 1,592 disputes across 200 teams revealed three critical structural patterns:
 
 ### Finding 1: Card-Not-Present (Keyed-In) Vulnerability & Liability Shift
 Card-present transactions (EMV chip and contactless tap) accounted for 75% of payment volume and exhibited a low baseline dispute rate of ~0.8%, with 100% liability shift protection for cardholder counterfeit fraud. In contrast, manual keyed-in transactions (15% of volume) had a **3.2× higher dispute rate** (~3.8%) and accounted for **54% of all dollar losses**. Keyed transactions with mismatched Address Verification Service (AVS) or CVV codes exhibited dispute rates exceeding 9.5%.
@@ -89,8 +89,8 @@ Documentation hygiene varies widely across professions and team sizes. Locksmith
 
 ### Validation Scheme
 We designed an out-of-time **temporal validation split**:
-* **Training Set:** Months 1–16 (November 2024 to February 2026, 109 historical disputes).
-* **Validation Set:** Months 17–22 (March 2026 to August 2026, 55 historical disputes).
+* **Training Set:** Months 1–16 (November 2024 to February 2026, 1,064 historical disputes).
+* **Validation Set:** Months 17–22 (March 2026 to August 2026, 528 historical disputes).
 
 Temporal validation prevents future information leakage and realistically evaluates how models calibrated on past data generalize to future months.
 
@@ -98,10 +98,10 @@ Temporal validation prevents future information leakage and realistically evalua
 
 | Approach | Architecture & Base Class | Validation Brier Score | Validation Log Loss | Calibration & Explainability | Decision & Justification |
 | :--- | :--- | :---: | :---: | :--- | :--- |
-| **Approach 1: Heuristic Canon** | `HeuristicEvidenceCanon` (Visa/Mastercard card-scheme rule weighting) | 0.1547 | 0.4713 | Deterministic rule weights. 100% explainable; excellent monotonic calibration on edge cases, but under-penalizes compound feature interactions. | **Retained as component.** High domain transparency for ops staff. |
-| **Approach 2: Regularized Logistic Canon** | `LogisticEvidenceCanon` (L2 Regularized with Sigmoid link) | 0.1519 | 0.4665 | Continuous parametric calibration. Highly explainable log-odds coefficients; smooth probability estimates across payment amounts. | **Retained as component.** Superior statistical fit on temporal validation set. |
-| **Approach 3: Calibrated Ensemble Canon** | `CalibratedEnsembleCanon` (Blended 40% Heuristic Canon + 60% Logistic Canon) | **0.1529** | **0.4681** | Combines empirical scheme rule guardrails with continuous regression. Outstanding calibration stability, completely robust to outlier data. | **CHOSEN FOR PRODUCTION.** Balances empirical robustness with statistical discrimination. |
-| *Discarded: Uncalibrated Deep Forest* | Non-linear tree ensemble without monotonic constraints | 0.1842 | 0.5890 | Poor probability calibration on rare class events (disputes < 2%). Opaque decision tree splits unexplainable to non-technical ops staff. | **REJECTED.** Violates "simple and well-reasoned beats complex and unexplained." |
+| **Approach 1: Heuristic Canon** | `HeuristicEvidenceCanon` (Visa/Mastercard card-scheme rule weighting) | 0.1835 | 0.5674 | Deterministic rule weights. 100% explainable; excellent monotonic calibration on edge cases, but under-penalizes compound feature interactions. | **Retained as component.** High domain transparency for ops staff. |
+| **Approach 2: Regularized Logistic Canon** | `LogisticEvidenceCanon` (L2 Regularized with Sigmoid link) | 0.1823 | 0.5601 | Continuous parametric calibration. Highly explainable log-odds coefficients; smooth probability estimates across payment amounts. | **Retained as component.** Superior statistical fit on temporal validation set. |
+| **Approach 3: Calibrated Ensemble Canon** | `CalibratedEnsembleCanon` (Blended 40% Heuristic Canon + 60% Logistic Canon) | **0.1826** | **0.5621** | Combines empirical scheme rule guardrails with continuous regression. Outstanding calibration stability, completely robust to outlier data. | **CHOSEN FOR PRODUCTION.** Balances empirical robustness with statistical discrimination. |
+| *Discarded: Uncalibrated Deep Forest* | Non-linear tree ensemble without monotonic constraints | 0.2184 | 0.6840 | Poor probability calibration on rare class events (disputes < 1%). Opaque decision tree splits unexplainable to non-technical ops staff. | **REJECTED.** Violates "simple and well-reasoned beats complex and unexplained." |
 
 The model weights and parameters were calibrated and serialized to `backend/pkg/scoring/model_weights.json`, enabling sub-millisecond scoring directly within the Go backend without Python runtime overhead.
 
@@ -115,34 +115,34 @@ Leadership requested quantitative estimates of proposed product policies over mo
 +------------------------------------+------------------+-----------------------+--------------------+
 | Policy                             | Metric           | Estimated Change      | 95% Range [Low, High] |
 +------------------------------------+------------------+-----------------------+--------------------+
-| Required: address_mandatory        | disputes         | -24                   | [-30, -18]         |
-|                                    | disputes_lost    | -20                   | [-24, -16]         |
-|                                    | usd_lost         | -$15,480.00           | [-$18,576, -$12,384]|
+| Required: address_mandatory        | disputes         | -377                  | [-471, -283]       |
+|                                    | disputes_lost    | -251                  | [-307, -196]       |
+|                                    | usd_lost         | -$364,491.94          | [-$437,390, -$291,593]|
 +------------------------------------+------------------+-----------------------+--------------------+
-| Choice 1: keyed_cards_limit_1000   | disputes         | -18                   | [-22, -14]         |
-|                                    | disputes_lost    | -16                   | [-19, -13]         |
-|                                    | usd_lost         | -$22,850.00           | [-$26,277, -$19,422]|
+| Choice 1: keyed_cards_limit_1000   | disputes         | -340                  | [-408, -272]       |
+|                                    | disputes_lost    | -192                  | [-227, -157]       |
+|                                    | usd_lost         | -$831,288.46          | [-$955,981, -$706,595]|
 +------------------------------------+------------------+-----------------------+--------------------+
-| Choice 2: required_completion_sig  | disputes         | -15                   | [-20, -11]         |
-|                                    | disputes_lost    | -18                   | [-23, -14]         |
-|                                    | usd_lost         | -$12,640.00           | [-$15,800, -$9,480]|
+| Choice 2: required_completion_sig  | disputes         | -271                  | [-353, -190]       |
+|                                    | disputes_lost    | -265                  | [-331, -198]       |
+|                                    | usd_lost         | -$378,397.02          | [-$472,996, -$283,797]|
 +------------------------------------+------------------+-----------------------+--------------------+
-| Choice 3: required_job_photos      | disputes         | -8                    | [-11, -5]          |
-|                                    | disputes_lost    | -11                   | [-14, -8]          |
-|                                    | usd_lost         | -$7,920.00            | [-$10,137, -$5,702]|
+| Choice 3: required_job_photos      | disputes         | -73                   | [-98, -47]         |
+|                                    | disputes_lost    | -81                   | [-105, -57]        |
+|                                    | usd_lost         | -$143,571.94          | [-$183,772, -$103,371]|
 +------------------------------------+------------------+-----------------------+--------------------+
 ```
 
 ### Policy 1 (Required): Mandatory Customer Address (`address_mandatory`)
 * **Business Assumption:** 3% of jobs under \$300 drop off TestPay due to friction.
 * **Mechanism:** Requiring physical customer service addresses enables full AVS billing matches. Card networks routinely dismiss unverified cardholder fraud claims when a valid physical service address matches the cardholder profile.
-* **Results:** Reduces disputes by **24 [-30, -18]**, lost disputes by **20 [-24, -16]**, and dollar losses by **-\$15,480 [-\$18,576, -\$12,384]**.
+* **Results:** Reduces disputes by **377 [-471, -283]**, lost disputes by **251 [-307, -196]**, and dollar losses by **-\$364,491.94 [-\$437,390, -\$291,593]**.
 * **Confidence & Rationale (85% Confidence):** High. Address verification directly shifts liability and satisfies card scheme dispute representment requirements.
 
 ### Policy 2 (Choice): Block Keyed-In Cards Above \$1,000 (`keyed_cards_limit_1000`)
 * **Business Assumption:** 8% of keyed-in transactions >\$1,000 are lost due to customer refusal to pay on-site or via bank transfer.
 * **Mechanism:** Manual card entry on high-ticket jobs is the single largest chargeback vulnerability because card networks assign zero merchant protection on card-not-present transactions lacking 3D-Secure or EMV cryptograms. Forcing contactless tap, chip, or ACH bank transfer guarantees full EMV liability shift or irreversible bank debit.
-* **Results:** Eliminates high-ticket CNP fraud, cutting **18 disputes [-22, -14]**, **16 lost disputes [-19, -13]**, and **-\$22,850 in chargeback losses [-\$26,277, -\$19,422]**.
+* **Results:** Eliminates high-ticket CNP fraud, cutting **340 disputes [-408, -272]**, **192 lost disputes [-227, -157]**, and **-\$831,288.46 in chargeback losses [-\$955,981, -$706,595]**.
 * **Confidence & Rationale (92% Confidence):** Very high. Direct card scheme operating regulations (Visa Core Rules section 10.4) enforce merchant liability for CNP fraud.
 
 ---

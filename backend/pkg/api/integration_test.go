@@ -96,9 +96,10 @@ func TestFullAPIIntegration(t *testing.T) {
 	}
 
 	// 5. Team detail endpoint
-	rec = serveReq("GET", "/api/teams/tm_0001", nil, "")
+	firstTeamID := teams[0].TeamID
+	rec = serveReq("GET", "/api/teams/"+firstTeamID, nil, "")
 	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /api/teams/tm_0001 failed with status %d", rec.Code)
+		t.Fatalf("GET /api/teams/%s failed with status %d", firstTeamID, rec.Code)
 	}
 
 	// 6. Reasons endpoint

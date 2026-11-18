@@ -1,8 +1,8 @@
 {
   "model_version": "v2.0-calibrated",
   "trained_on": "Months 1-22",
-  "brier_score": 0.1529,
-  "log_loss": 0.4681,
+  "brier_score": 0.1826,
+  "log_loss": 0.5621,
   "dispute_fee_usd": 25.0,
   "fighting_cost_usd": 15.0,
   "risk_thresholds": {
@@ -52,19 +52,19 @@
   },
   "comparisons": {
     "HeuristicRuleCanon": {
-      "brier_score": 0.1547,
-      "log_loss": 0.4713,
-      "val_samples": 53
+      "brier_score": 0.1835,
+      "log_loss": 0.5674,
+      "val_samples": 328
     },
     "LogisticCanon": {
-      "brier_score": 0.1519,
-      "log_loss": 0.4665,
-      "val_samples": 53
+      "brier_score": 0.1823,
+      "log_loss": 0.5601,
+      "val_samples": 328
     },
     "CalibratedEnsembleCanon": {
-      "brier_score": 0.1529,
-      "log_loss": 0.4681,
-      "val_samples": 53
+      "brier_score": 0.1826,
+      "log_loss": 0.5621,
+      "val_samples": 328
     }
   }
 }

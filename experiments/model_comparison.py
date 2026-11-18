@@ -34,13 +34,20 @@ class EvidenceCanon:
     def extract_evidence_features(self, invoice, payment=None, dispute=None):
         features = {}
         # Invoice features
-        features["addr_present"] = 1.0 if invoice.get("customer_address_present") == "true" else 0.0
-        features["email_present"] = 1.0 if invoice.get("customer_email_present") == "true" else 0.0
-        features["phone_present"] = 1.0 if invoice.get("customer_phone_present") == "true" else 0.0
-        features["signed_estimate"] = 1.0 if invoice.get("signed_estimate") == "true" else 0.0
-        features["terms_accepted"] = 1.0 if invoice.get("terms_accepted") == "true" else 0.0
-        features["gps_checkin"] = 1.0 if invoice.get("tech_gps_checkin") == "true" else 0.0
-        features["completion_signature"] = 1.0 if invoice.get("completion_signature") == "true" else 0.0
+        addr = str(invoice.get("customer_address_present", "")).lower()
+        features["addr_present"] = 1.0 if addr in ["true", "1", "yes"] else 0.0
+        email = str(invoice.get("customer_email_present", "")).lower()
+        features["email_present"] = 1.0 if email in ["true", "1", "yes"] else 0.0
+        phone = str(invoice.get("customer_phone_present", "")).lower()
+        features["phone_present"] = 1.0 if phone in ["true", "1", "yes"] else 0.0
+        est = str(invoice.get("signed_estimate", "")).lower()
+        features["signed_estimate"] = 1.0 if est in ["true", "1", "yes"] else 0.0
+        terms = str(invoice.get("terms_accepted", "")).lower()
+        features["terms_accepted"] = 1.0 if terms in ["true", "1", "yes"] else 0.0
+        gps = str(invoice.get("tech_gps_checkin", "")).lower()
+        features["gps_checkin"] = 1.0 if gps in ["true", "1", "yes"] else 0.0
+        sig = str(invoice.get("completion_signature", "")).lower()
+        features["completion_signature"] = 1.0 if sig in ["true", "1", "yes"] else 0.0
         features["photos_before"] = min(1.0, float(invoice.get("photos_before_count", 0)) / 2.0)
         features["photos_after"] = min(1.0, float(invoice.get("photos_after_count", 0)) / 2.0)
         
@@ -56,9 +63,12 @@ class EvidenceCanon:
             features["is_card_present"] = 1.0 if pmt_method in ["tap", "chip"] else 0.0
             features["is_ach"] = 1.0 if pmt_method == "ach" else 0.0
             features["is_bnpl"] = 1.0 if pmt_method == "bnpl" else 0.0
-            features["avs_match"] = 1.0 if payment.get("avs_result") in ["M", "A", "Z"] else 0.0
-            features["cvv_match"] = 1.0 if payment.get("cvv_result") == "M" else 0.0
-            features["receipt_sent"] = 1.0 if payment.get("receipt_sent") == "true" else 0.0
+            avs = str(payment.get("avs_result", "")).lower()
+            features["avs_match"] = 1.0 if avs in ["match", "partial", "m", "a", "z"] else 0.0
+            cvv = str(payment.get("cvv_result", "")).lower()
+            features["cvv_match"] = 1.0 if cvv in ["match", "m"] else 0.0
+            rcpt = str(payment.get("receipt_sent", "")).lower()
+            features["receipt_sent"] = 1.0 if rcpt in ["true", "1", "yes"] else 0.0
 
         # Dispute features
         if dispute:
@@ -69,10 +79,11 @@ class EvidenceCanon:
             features["reason_service_not_provided"] = 1.0 if reason == "service_not_provided" else 0.0
             features["reason_not_as_described"] = 1.0 if reason == "not_as_described" else 0.0
             features["has_signature_evidence"] = 1.0 if "completion_signature" in evidence_items else 0.0
-            features["has_gps_evidence"] = 1.0 if "tech_gps_checkin" in evidence_items else 0.0
-            features["has_photo_evidence"] = 1.0 if "photos_after" in evidence_items else 0.0
+            features["has_gps_evidence"] = 1.0 if ("gps_checkin" in evidence_items or "tech_gps_checkin" in evidence_items) else 0.0
+            features["has_photo_evidence"] = 1.0 if ("job_photos" in evidence_items or "photos_after" in evidence_items or "photos_added_after_dispute" in evidence_items) else 0.0
             features["has_estimate_evidence"] = 1.0 if "signed_estimate" in evidence_items else 0.0
-            features["merchant_responded"] = 1.0 if dispute.get("merchant_responded") == "true" else 0.0
+            resp = str(dispute.get("merchant_responded", "")).lower()
+            features["merchant_responded"] = 1.0 if resp in ["true", "1", "yes"] else 0.0
 
         return features
 
