@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: disputeshield
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: HISTORICAL_DIR
+        value: /app/data/historical
+      - key: SAMPLE_UPLOAD_DIR
+        value: /app/data/sample_upload
+      - key: FRONTEND_DIST
+        value: /app/frontend/dist
