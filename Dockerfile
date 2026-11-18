@@ -11,6 +11,7 @@ RUN npm run build
 FROM golang:1.22-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/go.mod ./
+RUN go mod tidy
 COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/disputeshield-server ./cmd/server
 
