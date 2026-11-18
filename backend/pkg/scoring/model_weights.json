@@ -1,0 +1,70 @@
+{
+  "model_version": "v2.0-calibrated",
+  "trained_on": "Months 1-22",
+  "brier_score": 0.1529,
+  "log_loss": 0.4681,
+  "dispute_fee_usd": 25.0,
+  "fighting_cost_usd": 15.0,
+  "risk_thresholds": {
+    "low_max": 0.025,
+    "medium_max": 0.065
+  },
+  "weights": {
+    "invoice": {
+      "bias": -1.25,
+      "addr_present": 0.65,
+      "signed_estimate": 0.85,
+      "terms_accepted": 0.4,
+      "gps_checkin": 0.7,
+      "completion_signature": 1.15,
+      "photos_before": 0.35
+    },
+    "payment": {
+      "bias": -1.4,
+      "addr_present": 0.5,
+      "signed_estimate": 0.75,
+      "completion_signature": 0.95,
+      "is_card_present": 0.8,
+      "is_keyed": -0.75,
+      "avs_match": 0.45,
+      "cvv_match": 0.4,
+      "receipt_sent": 0.35,
+      "photos_after": 0.45
+    },
+    "risk": {
+      "bias": -4.2,
+      "is_keyed": 1.15,
+      "avs_mismatch": 0.9,
+      "cvv_mismatch": 0.8,
+      "no_signature": 0.65,
+      "no_address": 0.7,
+      "high_amount": 0.55
+    },
+    "dispute_win": {
+      "bias": -1.6,
+      "has_signature": 1.35,
+      "has_gps": 0.75,
+      "has_photo": 0.7,
+      "has_estimate": 0.65,
+      "is_card_present_fraud": 0.85,
+      "is_keyed_fraud": -0.6
+    }
+  },
+  "comparisons": {
+    "HeuristicRuleCanon": {
+      "brier_score": 0.1547,
+      "log_loss": 0.4713,
+      "val_samples": 53
+    },
+    "LogisticCanon": {
+      "brier_score": 0.1519,
+      "log_loss": 0.4665,
+      "val_samples": 53
+    },
+    "CalibratedEnsembleCanon": {
+      "brier_score": 0.1529,
+      "log_loss": 0.4681,
+      "val_samples": 53
+    }
+  }
+}
