@@ -31,6 +31,8 @@ ENV PORT=8080
 ENV HISTORICAL_DIR=/app/data/historical
 ENV SAMPLE_UPLOAD_DIR=/app/data/sample_upload
 ENV FRONTEND_DIST=/app/frontend/dist
+ENV GOMEMLIMIT=380MiB
+ENV GOGC=50
 
 EXPOSE 8080
 

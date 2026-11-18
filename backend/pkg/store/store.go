@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -88,14 +90,8 @@ func (s *Store) loadInitialData() error {
 	}
 
 	// 3. Photos
-	photoPath := filepath.Join(s.historicalDir, "photos.csv")
-	if f, err := os.Open(photoPath); err == nil {
-		defer f.Close()
-		photosList, _ := parser.ParsePhotos(f)
-		for _, p := range photosList {
-			s.photos[p.PhotoID] = p
-		}
-	}
+	// Photos counts are already integrated into invoices.csv (photos_before_count, photos_after_count).
+	// To strictly preserve the 512MB RAM ceiling on Render, we do not retain 362k individual photo rows.
 
 	// 4. Payments
 	pmtPath := filepath.Join(s.historicalDir, "payments.csv")
@@ -123,6 +119,10 @@ func (s *Store) loadInitialData() error {
 	s.isCustomData = false
 	s.dataSourceName = "Months 1–22 Baseline (Default)"
 	s.recalculateLocked()
+
+	// Release startup allocations immediately back to the OS
+	runtime.GC()
+	debug.FreeOSMemory()
 
 	return nil
 }
@@ -223,20 +223,54 @@ func (s *Store) recalculateLocked() {
 
 	// 4. Team Summaries & Documentation Gaps
 	s.teamSummaries = make(map[string]*models.TeamSummary)
-	teamPayments := make(map[string][]*models.Payment)
-	for _, pmt := range s.payments {
-		teamPayments[pmt.TeamID] = append(teamPayments[pmt.TeamID], pmt)
+
+	type teamAgg struct {
+		totVol float64
+		nPmt   int
+		nKeyed int
+		nAddr  int
+		nSig   int
+		nEst   int
+		nGPS   int
 	}
+	teamStats := make(map[string]*teamAgg, 250)
+	for _, pmt := range s.payments {
+		st := teamStats[pmt.TeamID]
+		if st == nil {
+			st = &teamAgg{}
+			teamStats[pmt.TeamID] = st
+		}
+		st.nPmt++
+		st.totVol += pmt.AmountUSD
+		if pmt.PaymentMethod == "keyed" {
+			st.nKeyed++
+		}
+		if inv := s.invoices[pmt.InvoiceID]; inv != nil {
+			if inv.CustomerAddressPresent {
+				st.nAddr++
+			}
+			if inv.CompletionSignature {
+				st.nSig++
+			}
+			if inv.SignedEstimate {
+				st.nEst++
+			}
+			if inv.TechGPSCheckin {
+				st.nGPS++
+			}
+		}
+	}
+
 	teamDisputes := make(map[string][]*models.Dispute)
 	for _, d := range s.disputes {
 		teamDisputes[d.TeamID] = append(teamDisputes[d.TeamID], d)
 	}
 
-	allTeamIDs := make(map[string]bool)
+	allTeamIDs := make(map[string]bool, len(s.teams)+len(teamStats))
 	for tID := range s.teams {
 		allTeamIDs[tID] = true
 	}
-	for tID := range teamPayments {
+	for tID := range teamStats {
 		allTeamIDs[tID] = true
 	}
 
@@ -251,46 +285,20 @@ func (s *Store) recalculateLocked() {
 			size = t.TeamSize
 		}
 
-		pmts := teamPayments[tID]
+		st := teamStats[tID]
 		ds := teamDisputes[tID]
 
 		totVol := 0.0
-		nAddr := 0
-		nSig := 0
-		nEst := 0
-		nGPS := 0
-		nKeyed := 0
-
-		for _, p := range pmts {
-			totVol += p.AmountUSD
-			if p.PaymentMethod == "keyed" {
-				nKeyed++
-			}
-			inv := s.invoices[p.InvoiceID]
-			if inv != nil {
-				if inv.CustomerAddressPresent {
-					nAddr++
-				}
-				if inv.CompletionSignature {
-					nSig++
-				}
-				if inv.SignedEstimate {
-					nEst++
-				}
-				if inv.TechGPSCheckin {
-					nGPS++
-				}
-			}
-		}
-
-		nPmt := len(pmts)
+		nPmt := 0
 		var addrPct, sigPct, estPct, gpsPct, keyedPct float64
-		if nPmt > 0 {
-			addrPct = math.Round(float64(nAddr)/float64(nPmt)*1000) / 10
-			sigPct = math.Round(float64(nSig)/float64(nPmt)*1000) / 10
-			estPct = math.Round(float64(nEst)/float64(nPmt)*1000) / 10
-			gpsPct = math.Round(float64(nGPS)/float64(nPmt)*1000) / 10
-			keyedPct = math.Round(float64(nKeyed)/float64(nPmt)*1000) / 10
+		if st != nil && st.nPmt > 0 {
+			totVol = st.totVol
+			nPmt = st.nPmt
+			addrPct = math.Round(float64(st.nAddr)/float64(nPmt)*1000) / 10
+			sigPct = math.Round(float64(st.nSig)/float64(nPmt)*1000) / 10
+			estPct = math.Round(float64(st.nEst)/float64(nPmt)*1000) / 10
+			gpsPct = math.Round(float64(st.nGPS)/float64(nPmt)*1000) / 10
+			keyedPct = math.Round(float64(st.nKeyed)/float64(nPmt)*1000) / 10
 		}
 
 		nWon := 0

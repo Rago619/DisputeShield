@@ -10,6 +10,20 @@ import (
 	"disputeshield/pkg/models"
 )
 
+const (
+	ActionAddress   = "Action Required: Collect and attach customer service address to invoice"
+	ActionSignature = "Important: Capture customer digital completion signature"
+	ActionKeyed     = "High Risk Keyed Card: Verify customer billing zip & obtain signed work order"
+	ActionEstimate  = "Recommendation: Send digital estimate approval before high-value jobs"
+	ActionPhotos    = "Best Practice: Upload completed job photos to guarantee defensibility"
+	ActionReceipt   = "Send detailed itemized receipt via SMS/email immediately"
+	ActionOptimal   = "Optimal Paperwork: Strong documentation, low dispute vulnerability"
+
+	TierLow    = "low"
+	TierMedium = "medium"
+	TierHigh   = "high"
+)
+
 //go:embed model_weights.json
 var defaultModelWeightsJSON []byte
 
@@ -229,11 +243,11 @@ func (e *Engine) ScorePayment(inv *models.Invoice, pmt *models.Payment) models.P
 
 	// Risk Tier
 	if riskScore <= e.Config.RiskThresholds.LowMax {
-		pred.DisputeRiskTier = "low"
+		pred.DisputeRiskTier = TierLow
 	} else if riskScore <= e.Config.RiskThresholds.MediumMax {
-		pred.DisputeRiskTier = "medium"
+		pred.DisputeRiskTier = TierMedium
 	} else {
-		pred.DisputeRiskTier = "high"
+		pred.DisputeRiskTier = TierHigh
 	}
 
 	// 4. Expected Loss USD: P(dispute) * (Amount + $25 Fee) * (1 - PaymentWinProb)
@@ -242,19 +256,19 @@ func (e *Engine) ScorePayment(inv *models.Invoice, pmt *models.Payment) models.P
 
 	// 5. Recommended Action for the team
 	if !inv.CustomerAddressPresent {
-		pred.RecommendedAction = "Action Required: Collect and attach customer service address to invoice"
+		pred.RecommendedAction = ActionAddress
 	} else if !inv.CompletionSignature {
-		pred.RecommendedAction = "Important: Capture customer digital completion signature"
-	} else if pmt.PaymentMethod == "keyed" && (pmt.AVSResult != "M" && pmt.AVSResult != "A") {
-		pred.RecommendedAction = "High Risk Keyed Card: Verify customer billing zip & obtain signed work order"
+		pred.RecommendedAction = ActionSignature
+	} else if pmt.PaymentMethod == "keyed" && (pmt.AVSResult != "M" && pmt.AVSResult != "A" && pmt.AVSResult != "match") {
+		pred.RecommendedAction = ActionKeyed
 	} else if !inv.SignedEstimate && pmt.AmountUSD > 500 {
-		pred.RecommendedAction = "Recommendation: Send digital estimate approval before high-value jobs"
+		pred.RecommendedAction = ActionEstimate
 	} else if inv.PhotosAfterCount == 0 {
-		pred.RecommendedAction = "Best Practice: Upload completed job photos to guarantee defensibility"
+		pred.RecommendedAction = ActionPhotos
 	} else if !pmt.ReceiptSent {
-		pred.RecommendedAction = "Send detailed itemized receipt via SMS/email immediately"
+		pred.RecommendedAction = ActionReceipt
 	} else {
-		pred.RecommendedAction = "Optimal Paperwork: Strong documentation, low dispute vulnerability"
+		pred.RecommendedAction = ActionOptimal
 	}
 
 	return pred

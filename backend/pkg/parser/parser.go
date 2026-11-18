@@ -71,6 +71,55 @@ func ParseTeams(r io.Reader) ([]*models.Team, error) {
 	return teams, nil
 }
 
+func intern(s string) string {
+	switch s {
+	case "tap":
+		return "tap"
+	case "chip":
+		return "chip"
+	case "keyed":
+		return "keyed"
+	case "ach":
+		return "ach"
+	case "bnpl":
+		return "bnpl"
+	case "match":
+		return "match"
+	case "partial":
+		return "partial"
+	case "no_match":
+		return "no_match"
+	case "not_checked":
+		return "not_checked"
+	case "M":
+		return "M"
+	case "A":
+		return "A"
+	case "Z":
+		return "Z"
+	case "fraud":
+		return "fraud"
+	case "service_not_provided":
+		return "service_not_provided"
+	case "not_as_described":
+		return "not_as_described"
+	case "duplicate":
+		return "duplicate"
+	case "credit_not_processed":
+		return "credit_not_processed"
+	case "won":
+		return "won"
+	case "lost":
+		return "lost"
+	case "withdrawn":
+		return "withdrawn"
+	case "open":
+		return "open"
+	default:
+		return s
+	}
+}
+
 // ParseInvoices parses invoices.csv
 func ParseInvoices(r io.Reader) ([]*models.Invoice, error) {
 	reader := csv.NewReader(r)
@@ -91,25 +140,15 @@ func ParseInvoices(r io.Reader) ([]*models.Invoice, error) {
 		}
 		invoices = append(invoices, &models.Invoice{
 			InvoiceID:              getCol(record, colMap, "invoice_id"),
-			TeamID:                 getCol(record, colMap, "team_id"),
-			CustomerID:             getCol(record, colMap, "customer_id"),
-			CreatedAt:              getCol(record, colMap, "created_at"),
-			JobCompletedAt:         getCol(record, colMap, "job_completed_at"),
-			JobType:                getCol(record, colMap, "job_type"),
+			TeamID:                 intern(getCol(record, colMap, "team_id")),
 			AmountUSD:              parseFloat(getCol(record, colMap, "amount_usd")),
-			LineItemCount:          parseInt(getCol(record, colMap, "line_item_count")),
-			JobDescriptionChars:    parseInt(getCol(record, colMap, "job_description_chars")),
 			CustomerAddressPresent: parseBool(getCol(record, colMap, "customer_address_present")),
-			CustomerEmailPresent:   parseBool(getCol(record, colMap, "customer_email_present")),
-			CustomerPhonePresent:   parseBool(getCol(record, colMap, "customer_phone_present")),
 			SignedEstimate:         parseBool(getCol(record, colMap, "signed_estimate")),
 			TermsAccepted:          parseBool(getCol(record, colMap, "terms_accepted")),
 			TechGPSCheckin:         parseBool(getCol(record, colMap, "tech_gps_checkin")),
 			CompletionSignature:    parseBool(getCol(record, colMap, "completion_signature")),
 			PhotosBeforeCount:      parseInt(getCol(record, colMap, "photos_before_count")),
 			PhotosAfterCount:       parseInt(getCol(record, colMap, "photos_after_count")),
-			InvoiceStatus:          getCol(record, colMap, "invoice_status"),
-			UpdatedAt:              getCol(record, colMap, "updated_at"),
 		})
 	}
 	return invoices, nil
@@ -136,7 +175,7 @@ func ParsePhotos(r io.Reader) ([]*models.Photo, error) {
 		photos = append(photos, &models.Photo{
 			PhotoID:    getCol(record, colMap, "photo_id"),
 			InvoiceID:  getCol(record, colMap, "invoice_id"),
-			Kind:       getCol(record, colMap, "kind"),
+			Kind:       intern(getCol(record, colMap, "kind")),
 			UploadedAt: getCol(record, colMap, "uploaded_at"),
 		})
 	}
@@ -162,20 +201,15 @@ func ParsePayments(r io.Reader) ([]*models.Payment, error) {
 			return nil, err
 		}
 		payments = append(payments, &models.Payment{
-			PaymentID:       getCol(record, colMap, "payment_id"),
-			InvoiceID:       getCol(record, colMap, "invoice_id"),
-			TeamID:          getCol(record, colMap, "team_id"),
-			CustomerID:      getCol(record, colMap, "customer_id"),
-			CollectedAt:     getCol(record, colMap, "collected_at"),
-			AmountUSD:       parseFloat(getCol(record, colMap, "amount_usd")),
-			TipUSD:          parseFloat(getCol(record, colMap, "tip_usd")),
-			PaymentMethod:   getCol(record, colMap, "payment_method"),
-			CardFingerprint: getCol(record, colMap, "card_fingerprint"),
-			CardCountry:     getCol(record, colMap, "card_country"),
-			CardType:        getCol(record, colMap, "card_type"),
-			AVSResult:       getCol(record, colMap, "avs_result"),
-			CVVResult:       getCol(record, colMap, "cvv_result"),
-			ReceiptSent:     parseBool(getCol(record, colMap, "receipt_sent")),
+			PaymentID:     getCol(record, colMap, "payment_id"),
+			InvoiceID:     getCol(record, colMap, "invoice_id"),
+			TeamID:        intern(getCol(record, colMap, "team_id")),
+			CollectedAt:   getCol(record, colMap, "collected_at"),
+			AmountUSD:     parseFloat(getCol(record, colMap, "amount_usd")),
+			PaymentMethod: intern(getCol(record, colMap, "payment_method")),
+			AVSResult:     intern(getCol(record, colMap, "avs_result")),
+			CVVResult:     intern(getCol(record, colMap, "cvv_result")),
+			ReceiptSent:   parseBool(getCol(record, colMap, "receipt_sent")),
 		})
 	}
 	return payments, nil

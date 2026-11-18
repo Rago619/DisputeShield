@@ -15,3 +15,7 @@ services:
         value: /app/data/sample_upload
       - key: FRONTEND_DIST
         value: /app/frontend/dist
+      - key: GOMEMLIMIT
+        value: 380MiB
+      - key: GOGC
+        value: 50

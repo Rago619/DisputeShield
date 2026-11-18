@@ -13,24 +13,14 @@ type Team struct {
 type Invoice struct {
 	InvoiceID              string  `json:"invoice_id"`
 	TeamID                 string  `json:"team_id"`
-	CustomerID             string  `json:"customer_id"`
-	CreatedAt              string  `json:"created_at"`
-	JobCompletedAt         string  `json:"job_completed_at"`
-	JobType                string  `json:"job_type"`
 	AmountUSD              float64 `json:"amount_usd"`
-	LineItemCount          int     `json:"line_item_count"`
-	JobDescriptionChars    int     `json:"job_description_chars"`
 	CustomerAddressPresent bool    `json:"customer_address_present"`
-	CustomerEmailPresent   bool    `json:"customer_email_present"`
-	CustomerPhonePresent   bool    `json:"customer_phone_present"`
 	SignedEstimate         bool    `json:"signed_estimate"`
 	TermsAccepted          bool    `json:"terms_accepted"`
 	TechGPSCheckin         bool    `json:"tech_gps_checkin"`
 	CompletionSignature    bool    `json:"completion_signature"`
 	PhotosBeforeCount      int     `json:"photos_before_count"`
 	PhotosAfterCount       int     `json:"photos_after_count"`
-	InvoiceStatus          string  `json:"invoice_status"`
-	UpdatedAt              string  `json:"updated_at"`
 }
 
 // Photo represents a photo captured before or after work.
@@ -43,20 +33,15 @@ type Photo struct {
 
 // Payment represents a settled customer charge.
 type Payment struct {
-	PaymentID       string  `json:"payment_id"`
-	InvoiceID       string  `json:"invoice_id"`
-	TeamID          string  `json:"team_id"`
-	CustomerID      string  `json:"customer_id"`
-	CollectedAt     string  `json:"collected_at"`
-	AmountUSD       float64 `json:"amount_usd"`
-	TipUSD          float64 `json:"tip_usd"`
-	PaymentMethod   string  `json:"payment_method"` // tap, chip, keyed, ach, bnpl
-	CardFingerprint string  `json:"card_fingerprint"`
-	CardCountry     string  `json:"card_country"`
-	CardType        string  `json:"card_type"`
-	AVSResult       string  `json:"avs_result"`
-	CVVResult       string  `json:"cvv_result"`
-	ReceiptSent     bool    `json:"receipt_sent"`
+	PaymentID     string  `json:"payment_id"`
+	InvoiceID     string  `json:"invoice_id"`
+	TeamID        string  `json:"team_id"`
+	CollectedAt   string  `json:"collected_at"`
+	AmountUSD     float64 `json:"amount_usd"`
+	PaymentMethod string  `json:"payment_method"` // tap, chip, keyed, ach, bnpl
+	AVSResult     string  `json:"avs_result"`
+	CVVResult     string  `json:"cvv_result"`
+	ReceiptSent   bool    `json:"receipt_sent"`
 }
 
 // Dispute represents a bank chargeback initiated by customer or issuing bank.

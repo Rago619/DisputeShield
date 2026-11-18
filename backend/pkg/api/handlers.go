@@ -210,14 +210,12 @@ func (a *API) HandleReset(w http.ResponseWriter, r *http.Request) {
 // GET /api/export/payments
 func (a *API) HandleExportPayments(w http.ResponseWriter, r *http.Request) {
 	preds := a.Store.GetPaymentPredictionsForExport()
-	csvBytes, err := exporter.ExportPaymentPredictions(preds)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to generate CSV")
-		return
-	}
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"payment_predictions.csv\"")
-	_, _ = w.Write(csvBytes)
+	if err := exporter.StreamPaymentPredictions(w, preds); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to stream CSV")
+		return
+	}
 }
 
 // GET /api/export/disputes

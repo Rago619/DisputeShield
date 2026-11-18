@@ -4,16 +4,14 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"io"
 
 	"disputeshield/pkg/models"
 )
 
-// ExportPaymentPredictions exports payment_predictions.csv
-// Columns: payment_id,invoice_win_prob,payment_win_prob,dispute_risk_tier,dispute_risk_score,expected_loss_usd
-func ExportPaymentPredictions(preds []models.PaymentPrediction) ([]byte, error) {
-	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-
+// StreamPaymentPredictions streams payment_predictions.csv directly to w to avoid in-memory buffering.
+func StreamPaymentPredictions(out io.Writer, preds []models.PaymentPrediction) error {
+	w := csv.NewWriter(out)
 	header := []string{
 		"payment_id",
 		"invoice_win_prob",
@@ -23,7 +21,7 @@ func ExportPaymentPredictions(preds []models.PaymentPrediction) ([]byte, error) 
 		"expected_loss_usd",
 	}
 	if err := w.Write(header); err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, p := range preds {
@@ -36,11 +34,19 @@ func ExportPaymentPredictions(preds []models.PaymentPrediction) ([]byte, error) 
 			fmt.Sprintf("%.2f", p.ExpectedLossUSD),
 		}
 		if err := w.Write(record); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	w.Flush()
-	return buf.Bytes(), w.Error()
+	return w.Error()
+}
+
+// ExportPaymentPredictions exports payment_predictions.csv
+// Columns: payment_id,invoice_win_prob,payment_win_prob,dispute_risk_tier,dispute_risk_score,expected_loss_usd
+func ExportPaymentPredictions(preds []models.PaymentPrediction) ([]byte, error) {
+	var buf bytes.Buffer
+	err := StreamPaymentPredictions(&buf, preds)
+	return buf.Bytes(), err
 }
 
 // ExportDisputePredictions exports dispute_predictions.csv
